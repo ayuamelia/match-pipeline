@@ -10,7 +10,7 @@ Ensure that Docker and Docker Compose are installed on your machine.
 ### Setup
 
 ```bash
-git clone <repo-url> pelgo-match-pipeline
+git clone https://github.com/ayuamelia/match-pipeline
 cd pelgo-match-pipeline
 cp .env.example .env
 
