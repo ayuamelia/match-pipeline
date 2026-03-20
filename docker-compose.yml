@@ -1,0 +1,117 @@
+version: "3.9"
+
+networks:
+  pelgo_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
+x-backend-base: &backend-base
+  build:
+    context: ./backend
+    dockerfile: Dockerfile
+  env_file: .env
+  networks:
+    - pelgo_net
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pelgo}
+      POSTGRES_USER: ${POSTGRES_USER:-pelgo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pelgo_secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - pelgo_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pelgo} -d ${POSTGRES_DB:-pelgo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - pelgo_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    <<: *backend-base
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+
+  seed:
+    <<: *backend-base
+    command: ["python", "scripts/seed.py"]
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  api:
+    <<: *backend-base
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    <<: *backend-base
+    command: ["celery", "-A", "app.worker", "worker", "--loglevel=INFO", "--concurrency=4", "--queues=scoring", "--hostname=worker-%(n)s@%(h)s"]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    env_file: .env
+    ports:
+      - "3000:3000"
+    networks:
+      - pelgo_net
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
