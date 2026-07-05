@@ -16,7 +16,7 @@ export default function Home() {
             <span className="text-white font-bold text-sm">P</span>
           </div>
           <div>
-            <h1 className="text-base font-semibold text-gray-900">Pelgo Match Pipeline</h1>
+            <h1 className="text-base font-semibold text-gray-900">Job Match Pipeline</h1>
             <p className="text-xs text-gray-500">Score job descriptions against your profile</p>
           </div>
         </div>
