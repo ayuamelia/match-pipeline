@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pelgo — Job Match Pipeline",
+  title: "Job Match Pipeline",
   description: "Score job descriptions against your candidate profile",
 };
 
