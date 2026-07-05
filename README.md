@@ -1,4 +1,4 @@
-# Pelgo Match Pipeline
+# Job Match Pipeline
 
 An asynchronous job processing system designed to evaluate job descriptions against a specific candidate profile. It features a backend API that queues matching tasks and a frontend interface that polls and displays real-time scoring results. This project demonstrates reliable background job processing, deterministic rule-based scoring, and optional AI-driven text insights.
 
@@ -11,7 +11,7 @@ Ensure that Docker and Docker Compose are installed on your machine.
 
 ```bash
 git clone https://github.com/ayuamelia/match-pipeline
-cd pelgo-match-pipeline
+cd job-match-pipeline
 cp .env.example .env
 
 docker compose up --build --scale worker=2
@@ -52,7 +52,7 @@ celery -A app.worker worker --loglevel=INFO --concurrency=4 -n worker2@%h
 ```bash
 # Backend (needs a running Postgres)
 cd backend
-export TEST_DATABASE_URL=postgresql+asyncpg://pelgo:pelgo_secret@localhost:5432/pelgo_test
+export TEST_DATABASE_URL=postgresql+asyncpg://db:secret@localhost:5432/test
 pytest -v
 
 # Frontend
